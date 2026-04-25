@@ -944,7 +944,7 @@ footer {
     </div>
 
     <div class="bulletin-cta">
-      <button class="btn-post" onclick="openPostModal()">📢 POST SQUAD UPDATE  [ORGANISER ONLY]</button>
+      <button class="btn-post" onclick="openPostModal()">📢 POST SQUAD UPDATE</button>
     </div>
   </div>
 </section>
@@ -1282,7 +1282,7 @@ function renderPosts() {
     d.innerHTML = `
       <div class="post-hdr">
         <div class="post-avatar">📢</div>
-        <span class="post-author">HQ Commander</span>
+        <span class="post-author">${safeHtml(p.author || 'HQ Commander')}</span>
         <span class="post-time">${fmtDate(p.ts)}</span>
       </div>
       <div class="post-body">${safeHtml(p.msg)}</div>
@@ -1448,9 +1448,12 @@ async function fetchPosts() {
 
 function openPostModal() {
   document.getElementById('post-modal').classList.add('open');
-  document.getElementById('modal-auth').style.display    = authed ? 'none' : 'block';
-  document.getElementById('modal-compose').style.display = authed ? 'block' : 'none';
+  // Known guests skip the password screen entirely
+  const skipAuth = authed || !!guestName;
+  document.getElementById('modal-auth').style.display    = skipAuth ? 'none' : 'block';
+  document.getElementById('modal-compose').style.display = skipAuth ? 'block' : 'none';
   document.getElementById('auth-err').style.display = 'none';
+  if (skipAuth) document.getElementById('post-msg').focus();
 }
 function closePostModal() {
   document.getElementById('post-modal').classList.remove('open');
@@ -1494,7 +1497,8 @@ async function submitPost() {
     mediaType = pendingMediaType;
   }
 
-  const post = { ts: new Date().toISOString(), msg, mediaUrl, mediaType };
+  const author = guestName || 'HQ Commander';
+  const post = { ts: new Date().toISOString(), msg, mediaUrl, mediaType, author };
   posts.push(post);
   localStorage.setItem('squad_posts', JSON.stringify(posts));
 
