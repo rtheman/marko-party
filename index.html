@@ -529,6 +529,21 @@ section { position:relative; z-index:1; }
 .reply-author { font-family:'Exo 2',sans-serif; font-weight:700; font-size:.72rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--cyan); }
 .reply-body { font-size:.88rem; color:var(--text); line-height:1.55; }
 .reply-form { margin-top:10px; padding:10px 0 4px; }
+.reply-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 3px;
+  padding: 6px 12px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: .85rem;
+  outline: none;
+  margin-bottom: 6px;
+  transition: border-color .2s;
+}
+.reply-name-input:focus { border-color:var(--cyan); box-shadow:0 0 8px rgba(0,212,255,0.2); }
 .reply-ta {
   width: 100%;
   box-sizing: border-box;
@@ -1277,6 +1292,7 @@ function renderPosts() {
       <div class="reply-thread" id="thread-${pid}">
         ${repliesHtml}
         <div class="reply-form" id="reply-form-${pid}" style="display:none">
+          ${guestName ? '' : `<input class="reply-name-input" id="reply-name-${pid}" type="text" placeholder="Your name" maxlength="40" value="${safeAttr(localStorage.getItem('squad_reply_name') || '')}">`}
           <textarea class="reply-ta" id="reply-ta-${pid}" placeholder="Write a reply…" rows="2"></textarea>
           <div class="reply-form-btns">
             <button class="btn-reply-cancel" onclick="toggleReplyForm('${safeAttr(p.ts)}')">CANCEL</button>
@@ -1507,19 +1523,32 @@ function toggleReplyForm(parentTs) {
   const isOpen = form.style.display !== 'none';
   form.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
-    const ta = document.getElementById('reply-ta-' + pid);
-    if (ta) ta.focus();
+    // Focus name field first if present, otherwise the textarea
+    const nameEl = document.getElementById('reply-name-' + pid);
+    const ta     = document.getElementById('reply-ta-' + pid);
+    if (nameEl && !nameEl.value) nameEl.focus();
+    else if (ta) ta.focus();
   }
 }
 
 async function submitReply(parentTs) {
-  const pid = tsToId(parentTs);
-  const ta  = document.getElementById('reply-ta-' + pid);
-  const msg = ta ? ta.value.trim() : '';
+  const pid     = tsToId(parentTs);
+  const ta      = document.getElementById('reply-ta-' + pid);
+  const nameEl  = document.getElementById('reply-name-' + pid);
+  const msg     = ta ? ta.value.trim() : '';
   if (!msg) { if (ta) ta.focus(); return; }
 
-  const author     = guestName || 'Anonymous';
-  const guestIdVal = guestId   || '';
+  // Resolve author: URL param guest > name field > localStorage cache > Anonymous
+  let author;
+  if (guestName) {
+    author = guestName;
+  } else if (nameEl) {
+    author = nameEl.value.trim() || 'Anonymous';
+    if (author !== 'Anonymous') localStorage.setItem('squad_reply_name', author);
+  } else {
+    author = 'Anonymous';
+  }
+  const guestIdVal = guestId || '';
   const replyTs    = new Date().toISOString();
 
   const reply = { parentTs, replyTs, author, msg, guestId: guestIdVal };
