@@ -1041,8 +1041,10 @@ footer {
 const CFG = {
   // Replace with your deployed Apps Script URL after Step 4:
   appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyMmV-hgnM3AyZltSVguKWvC_toIIC92oqSJEZGi8kxyUJXNLw5lhkegFao2RHLAGE/exec',
-  // SHA-256 of "Marko12"
+  // SHA-256 of "Marko12" — organiser password
   pwHash: '845276a01681b8774501f4e5b3a49f2084ce34e5f223a55bd2758100ca309209',
+  // SHA-256 of "squadJFK2026" — guest password
+  guestPwHash: '897b8008a19aef8b8821ee4f7249e8b9f9dde82b637e607c5d3b27ffea3ee614',
 };
 
 // Guest table  (id → display name)
@@ -1214,9 +1216,10 @@ function playJingle() {
 }
 
 // ── BULLETIN BOARD ───────────────────────────────────
-let posts   = JSON.parse(localStorage.getItem('squad_posts')   || '[]');
-let replies = JSON.parse(localStorage.getItem('squad_replies') || '[]');
-let authed  = false;
+let posts       = JSON.parse(localStorage.getItem('squad_posts')   || '[]');
+let replies     = JSON.parse(localStorage.getItem('squad_replies') || '[]');
+let authed      = false;  // organiser password verified this session
+let guestAuthed = localStorage.getItem('squad_guest_authed') === '1';
 
 function tsToId(ts) { return ts.replace(/[:.]/g, '-'); }
 let pendingMediaDataUrl = null;   // base64 data URL of picked file
@@ -1448,8 +1451,7 @@ async function fetchPosts() {
 
 function openPostModal() {
   document.getElementById('post-modal').classList.add('open');
-  // Known guests skip the password screen entirely
-  const skipAuth = authed || !!guestName;
+  const skipAuth = authed || guestAuthed;
   document.getElementById('modal-auth').style.display    = skipAuth ? 'none' : 'block';
   document.getElementById('modal-compose').style.display = skipAuth ? 'block' : 'none';
   document.getElementById('auth-err').style.display = 'none';
@@ -1468,14 +1470,21 @@ async function verifyPw() {
   const pw = document.getElementById('auth-pw').value;
   const h  = await sha256(pw);
   if (h === CFG.pwHash) {
+    // Organiser password
     authed = true;
-    document.getElementById('modal-auth').style.display    = 'none';
-    document.getElementById('modal-compose').style.display = 'block';
-    document.getElementById('auth-err').style.display      = 'none';
+  } else if (h === CFG.guestPwHash) {
+    // Guest password — persist so they don't need to re-enter
+    guestAuthed = true;
+    localStorage.setItem('squad_guest_authed', '1');
   } else {
     document.getElementById('auth-err').style.display = 'block';
     document.getElementById('auth-pw').value = '';
+    return;
   }
+  document.getElementById('modal-auth').style.display    = 'none';
+  document.getElementById('modal-compose').style.display = 'block';
+  document.getElementById('auth-err').style.display      = 'none';
+  document.getElementById('post-msg').focus();
 }
 
 async function submitPost() {
