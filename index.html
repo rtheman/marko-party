@@ -496,6 +496,85 @@ section { position:relative; z-index:1; }
 .bulletin-empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:.88rem; letter-spacing:2px; }
 .bulletin-cta { text-align:center; }
 
+/* ── Reply thread ── */
+.post-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.reply-count { font-size:.72rem; color:var(--dim); letter-spacing:1px; }
+.btn-reply {
+  background: none;
+  border: 1px solid rgba(0,212,255,0.3);
+  border-radius: 3px;
+  color: var(--cyan);
+  font-family: 'Exo 2', sans-serif;
+  font-size: .68rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all .2s;
+  margin-left: auto;
+}
+.btn-reply:hover { background:rgba(0,212,255,0.1); border-color:var(--cyan); box-shadow:0 0 10px rgba(0,212,255,0.25); }
+.reply-thread { margin-top:8px; border-left:2px solid rgba(0,212,255,0.25); padding-left:14px; }
+.reply-item { padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+.reply-item:last-of-type { border-bottom:none; }
+.reply-hdr { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.reply-avatar { font-size:.8rem; }
+.reply-author { font-family:'Exo 2',sans-serif; font-weight:700; font-size:.72rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--cyan); }
+.reply-body { font-size:.88rem; color:var(--text); line-height:1.55; }
+.reply-form { margin-top:10px; padding:10px 0 4px; }
+.reply-ta {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 3px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: .9rem;
+  outline: none;
+  resize: vertical;
+  transition: border-color .2s;
+}
+.reply-ta:focus { border-color:var(--cyan); box-shadow:0 0 8px rgba(0,212,255,0.2); }
+.reply-form-btns { display:flex; gap:10px; margin-top:8px; justify-content:flex-end; }
+.btn-reply-submit {
+  background: rgba(0,212,255,0.1);
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+  color: var(--cyan);
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 700;
+  font-size: .68rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-reply-submit:hover { background:rgba(0,212,255,0.22); box-shadow:0 0 12px rgba(0,212,255,0.35); }
+.btn-reply-cancel {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  color: var(--dim);
+  font-family: 'Exo 2', sans-serif;
+  font-size: .68rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-reply-cancel:hover { border-color:rgba(255,255,255,0.4); color:var(--text); }
+
 .btn-post {
   padding:13px 30px;
   font-family:'Exo 2',sans-serif; font-weight:700;
@@ -1118,8 +1197,11 @@ function playJingle() {
 }
 
 // ── BULLETIN BOARD ───────────────────────────────────
-let posts = JSON.parse(localStorage.getItem('squad_posts') || '[]');
-let authed = false;
+let posts   = JSON.parse(localStorage.getItem('squad_posts')   || '[]');
+let replies = JSON.parse(localStorage.getItem('squad_replies') || '[]');
+let authed  = false;
+
+function tsToId(ts) { return ts.replace(/[:.]/g, '-'); }
 let pendingMediaDataUrl = null;   // base64 data URL of picked file
 let pendingMediaType    = null;   // 'image' or 'video'
 let pendingMediaMime    = null;   // original MIME type
@@ -1136,6 +1218,13 @@ function renderPosts() {
 
   if (posts.length === 0) { empty.style.display = 'block'; return; }
   empty.style.display = 'none';
+
+  // Build a lookup map of replies by parent post timestamp
+  const replyMap = {};
+  replies.forEach(r => {
+    if (!replyMap[r.parentTs]) replyMap[r.parentTs] = [];
+    replyMap[r.parentTs].push(r);
+  });
 
   [...posts].reverse().forEach(p => {
     const d = document.createElement('div');
@@ -1157,6 +1246,22 @@ function renderPosts() {
       mediaHtml = `<video class="post-video" src="${safeAttr(p.mediaUrl)}" controls playsinline preload="metadata"></video>`;
     }
 
+    const postReplies = replyMap[p.ts] || [];
+    const replyCountHtml = postReplies.length
+      ? `<span class="reply-count">💬 ${postReplies.length} ${postReplies.length === 1 ? 'reply' : 'replies'}</span>`
+      : '';
+    const repliesHtml = postReplies.map(r => `
+      <div class="reply-item">
+        <div class="reply-hdr">
+          <div class="reply-avatar">💬</div>
+          <span class="reply-author">${safeHtml(r.author)}</span>
+          <span class="post-time">${fmtDate(r.replyTs)}</span>
+        </div>
+        <div class="reply-body">${safeHtml(r.msg)}</div>
+      </div>
+    `).join('');
+    const pid = tsToId(p.ts);
+
     d.innerHTML = `
       <div class="post-hdr">
         <div class="post-avatar">📢</div>
@@ -1165,6 +1270,20 @@ function renderPosts() {
       </div>
       <div class="post-body">${safeHtml(p.msg)}</div>
       ${mediaHtml}
+      <div class="post-footer">
+        ${replyCountHtml}
+        <button class="btn-reply" onclick="toggleReplyForm('${safeAttr(p.ts)}')">💬 Reply</button>
+      </div>
+      <div class="reply-thread" id="thread-${pid}">
+        ${repliesHtml}
+        <div class="reply-form" id="reply-form-${pid}" style="display:none">
+          <textarea class="reply-ta" id="reply-ta-${pid}" placeholder="Write a reply…" rows="2"></textarea>
+          <div class="reply-form-btns">
+            <button class="btn-reply-cancel" onclick="toggleReplyForm('${safeAttr(p.ts)}')">CANCEL</button>
+            <button class="btn-reply-submit" onclick="submitReply('${safeAttr(p.ts)}')">⚡ SEND</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Clicking anywhere on the post card (or the image) opens the lightbox
@@ -1172,6 +1291,7 @@ function renderPosts() {
       d.style.cursor = 'zoom-in';
       d.addEventListener('click', e => {
         if (e.target.tagName === 'VIDEO') return; // don't intercept video controls
+        if (e.target.closest('.post-footer,.reply-thread')) return; // don't intercept reply UI
         openLightbox(lightboxSrc);
       });
     }
@@ -1299,8 +1419,12 @@ async function fetchPosts() {
     if (data.posts && Array.isArray(data.posts)) {
       posts = data.posts;
       localStorage.setItem('squad_posts', JSON.stringify(posts));
-      renderPosts();
     }
+    if (data.replies && Array.isArray(data.replies)) {
+      replies = data.replies;
+      localStorage.setItem('squad_replies', JSON.stringify(replies));
+    }
+    renderPosts();
   } catch(e) { console.warn('Fetch posts failed', e); }
 }
 
@@ -1373,6 +1497,45 @@ async function submitPost() {
   btn.textContent = '📡 TRANSMIT TO SQUAD';
   btn.disabled = false;
   renderPosts();
+}
+
+// ── REPLY ─────────────────────────────────────────────
+function toggleReplyForm(parentTs) {
+  const pid  = tsToId(parentTs);
+  const form = document.getElementById('reply-form-' + pid);
+  if (!form) return;
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    const ta = document.getElementById('reply-ta-' + pid);
+    if (ta) ta.focus();
+  }
+}
+
+async function submitReply(parentTs) {
+  const pid = tsToId(parentTs);
+  const ta  = document.getElementById('reply-ta-' + pid);
+  const msg = ta ? ta.value.trim() : '';
+  if (!msg) { if (ta) ta.focus(); return; }
+
+  const author     = guestName || 'Anonymous';
+  const guestIdVal = guestId   || '';
+  const replyTs    = new Date().toISOString();
+
+  const reply = { parentTs, replyTs, author, msg, guestId: guestIdVal };
+  replies.push(reply);
+  localStorage.setItem('squad_replies', JSON.stringify(replies));
+  renderPosts();
+
+  if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
+    try {
+      await fetch(CFG.appsScriptUrl, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reply', parentTs, replyTs, msg, author, guestId: guestIdVal }),
+      });
+    } catch(e) { console.warn('Reply sync failed', e); }
+  }
 }
 
 // ── INIT ─────────────────────────────────────────────
