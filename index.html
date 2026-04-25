@@ -441,11 +441,12 @@ section { position:relative; z-index:1; }
 .post-time { font-size:.72rem; color:var(--dim); letter-spacing:1px; margin-left:auto; }
 .post-body { font-size:.95rem; color:var(--text); line-height:1.65; }
 .post-img {
-  margin-top:12px; max-width:100%; border-radius:3px;
-  border:1px solid rgba(255,0,128,.3); cursor:pointer;
-  display:block; transition:opacity .2s;
+  margin-top:12px; max-width:100%; max-height:260px;
+  width:auto; border-radius:3px;
+  border:1px solid rgba(255,0,128,.3); cursor:zoom-in;
+  display:block; object-fit:cover; transition:opacity .2s;
 }
-.post-img:hover { opacity:.85; }
+.post-img:hover { opacity:.82; }
 .post-video {
   margin-top:12px; max-width:100%; border-radius:3px;
   border:1px solid rgba(255,0,128,.3); display:block;
@@ -480,14 +481,16 @@ section { position:relative; z-index:1; }
 
 /* ── Lightbox ── */
 .lightbox-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.92);
+  position:fixed; inset:0; background:rgba(0,0,0,.94);
   z-index:9000; display:none; align-items:center; justify-content:center;
-  padding:20px; cursor:zoom-out;
+  padding:16px; cursor:zoom-out;
 }
 .lightbox-overlay.open { display:flex; }
 .lightbox-overlay img {
-  max-width:100%; max-height:90vh; border-radius:4px;
-  box-shadow:0 0 60px rgba(255,0,128,.3);
+  max-width:min(100%, 960px); max-height:92vh;
+  width:auto; height:auto;
+  border-radius:4px; box-shadow:0 0 60px rgba(255,0,128,.3);
+  object-fit:contain; cursor:zoom-out;
 }
 
 .bulletin-empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:.88rem; letter-spacing:2px; }
@@ -1146,17 +1149,23 @@ function renderPosts() {
   [...posts].reverse().forEach(p => {
     const d = document.createElement('div');
     d.className = 'hud-panel post';
-    let mediaHtml = '';
+
+    let mediaHtml  = '';
+    let lightboxSrc = null;
+
     if (p.mediaType === 'image' && p.mediaUrl) {
-      const src = safeAttr(p.mediaUrl);
-      mediaHtml = `<img class="post-img" src="${src}" alt="Squad update" loading="lazy" onclick="openLightbox('${src}')">`;
+      lightboxSrc = p.mediaUrl;
+    } else if (p.img) {
+      lightboxSrc = p.img; // legacy
+    }
+
+    if (lightboxSrc) {
+      const src = safeAttr(lightboxSrc);
+      mediaHtml = `<img class="post-img" src="${src}" alt="Tap to enlarge" loading="lazy">`;
     } else if (p.mediaType === 'video' && p.mediaUrl) {
       mediaHtml = `<video class="post-video" src="${safeAttr(p.mediaUrl)}" controls playsinline preload="metadata"></video>`;
-    } else if (p.img) {
-      // legacy posts that only had an image URL field
-      const src = safeAttr(p.img);
-      mediaHtml = `<img class="post-img" src="${src}" alt="Squad update" loading="lazy" onclick="openLightbox('${src}')">`;
     }
+
     d.innerHTML = `
       <div class="post-hdr">
         <div class="post-avatar">📢</div>
@@ -1166,6 +1175,16 @@ function renderPosts() {
       <div class="post-body">${safeHtml(p.msg)}</div>
       ${mediaHtml}
     `;
+
+    // Clicking anywhere on the post card (or the image) opens the lightbox
+    if (lightboxSrc) {
+      d.style.cursor = 'zoom-in';
+      d.addEventListener('click', e => {
+        if (e.target.tagName === 'VIDEO') return; // don't intercept video controls
+        openLightbox(lightboxSrc);
+      });
+    }
+
     feed.insertBefore(d, empty);
   });
 }
