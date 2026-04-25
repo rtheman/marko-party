@@ -440,7 +440,55 @@ section { position:relative; z-index:1; }
 }
 .post-time { font-size:.72rem; color:var(--dim); letter-spacing:1px; margin-left:auto; }
 .post-body { font-size:.95rem; color:var(--text); line-height:1.65; }
-.post-img { margin-top:12px; max-width:100%; border-radius:3px; border:1px solid rgba(255,0,128,.3); }
+.post-img {
+  margin-top:12px; max-width:100%; border-radius:3px;
+  border:1px solid rgba(255,0,128,.3); cursor:pointer;
+  display:block; transition:opacity .2s;
+}
+.post-img:hover { opacity:.85; }
+.post-video {
+  margin-top:12px; max-width:100%; border-radius:3px;
+  border:1px solid rgba(255,0,128,.3); display:block;
+}
+
+/* ── Attachment button in modal ── */
+.attach-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.btn-attach {
+  background:rgba(255,255,255,.06); border:1px dashed rgba(255,255,255,.25);
+  border-radius:3px; padding:10px 16px; cursor:pointer;
+  color:var(--dim); font-family:'Exo 2',sans-serif;
+  font-size:.75rem; letter-spacing:2px; text-transform:uppercase;
+  display:flex; align-items:center; gap:8px; transition:all .2s;
+}
+.btn-attach:hover { border-color:var(--magenta); color:var(--magenta); background:rgba(255,0,128,.08); }
+.attach-label { font-size:.72rem; color:var(--dim); letter-spacing:1px; }
+.attach-preview {
+  margin-bottom:16px; position:relative; display:none;
+}
+.attach-preview img, .attach-preview video {
+  max-height:160px; max-width:100%; border-radius:3px;
+  border:1px solid rgba(255,0,128,.3); display:block;
+}
+.attach-remove {
+  position:absolute; top:6px; right:6px;
+  background:rgba(5,5,16,.8); border:1px solid rgba(255,0,128,.5);
+  border-radius:50%; width:22px; height:22px;
+  color:var(--magenta); font-size:.8rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+}
+.attach-size-warn { color:var(--magenta); font-size:.75rem; letter-spacing:1px; display:none; }
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.92);
+  z-index:9000; display:none; align-items:center; justify-content:center;
+  padding:20px; cursor:zoom-out;
+}
+.lightbox-overlay.open { display:flex; }
+.lightbox-overlay img {
+  max-width:100%; max-height:90vh; border-radius:4px;
+  box-shadow:0 0 60px rgba(255,0,128,.3);
+}
 
 .bulletin-empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:.88rem; letter-spacing:2px; }
 .bulletin-cta { text-align:center; }
@@ -868,16 +916,33 @@ footer {
         <label class="form-label">Transmission Message</label>
         <textarea class="form-ta" id="post-msg" placeholder="Type your squad update…"></textarea>
       </div>
-      <div class="form-group">
-        <label class="form-label">Image URL (optional)</label>
-        <input type="url" class="form-input" id="post-img" placeholder="https://…">
+
+      <!-- hidden file input — no capture attr so mobile opens gallery picker -->
+      <input type="file" id="post-file" accept="image/*,video/*" style="display:none" onchange="onFilePicked(this)">
+
+      <div class="attach-row">
+        <button type="button" class="btn-attach" onclick="document.getElementById('post-file').click()">
+          📎 ATTACH PHOTO / VIDEO
+        </button>
+        <span class="attach-label" id="attach-label"></span>
       </div>
+      <div class="attach-size-warn" id="attach-size-warn">⚠ File too large. Images max 10 MB, videos max 50 MB.</div>
+
+      <div class="attach-preview" id="attach-preview">
+        <button type="button" class="attach-remove" onclick="clearAttachment()" title="Remove">✕</button>
+      </div>
+
       <div class="modal-btns">
         <button class="btn-submit" onclick="submitPost()">📡 TRANSMIT TO SQUAD</button>
         <button class="btn-cancel" onclick="closePostModal()">ABORT</button>
       </div>
     </div>
   </div>
+</div>
+
+<!-- ══ LIGHTBOX ══ -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="Full size">
 </div>
 
 <!-- ════════════════════════════════════════════════════
@@ -1061,9 +1126,17 @@ function playJingle() {
 // ── BULLETIN BOARD ───────────────────────────────────
 let posts = JSON.parse(localStorage.getItem('squad_posts') || '[]');
 let authed = false;
+let pendingMediaDataUrl = null;   // base64 data URL of picked file
+let pendingMediaType    = null;   // 'image' or 'video'
+let pendingMediaMime    = null;   // original MIME type
+
+const IMG_MAX_BYTES  = 10 * 1024 * 1024;  // 10 MB raw limit for images
+const VID_MAX_BYTES  = 50 * 1024 * 1024;  // 50 MB raw limit for videos
+const IMG_MAX_PX     = 1280;               // max dimension after compression
+const IMG_QUALITY    = 0.72;               // JPEG quality
 
 function renderPosts() {
-  const feed = document.getElementById('bulletin-feed');
+  const feed  = document.getElementById('bulletin-feed');
   const empty = document.getElementById('bulletin-empty');
   feed.querySelectorAll('.post').forEach(el => el.remove());
 
@@ -1073,6 +1146,17 @@ function renderPosts() {
   [...posts].reverse().forEach(p => {
     const d = document.createElement('div');
     d.className = 'hud-panel post';
+    let mediaHtml = '';
+    if (p.mediaType === 'image' && p.mediaUrl) {
+      const src = safeAttr(p.mediaUrl);
+      mediaHtml = `<img class="post-img" src="${src}" alt="Squad update" loading="lazy" onclick="openLightbox('${src}')">`;
+    } else if (p.mediaType === 'video' && p.mediaUrl) {
+      mediaHtml = `<video class="post-video" src="${safeAttr(p.mediaUrl)}" controls playsinline preload="metadata"></video>`;
+    } else if (p.img) {
+      // legacy posts that only had an image URL field
+      const src = safeAttr(p.img);
+      mediaHtml = `<img class="post-img" src="${src}" alt="Squad update" loading="lazy" onclick="openLightbox('${src}')">`;
+    }
     d.innerHTML = `
       <div class="post-hdr">
         <div class="post-avatar">📢</div>
@@ -1080,7 +1164,7 @@ function renderPosts() {
         <span class="post-time">${fmtDate(p.ts)}</span>
       </div>
       <div class="post-body">${safeHtml(p.msg)}</div>
-      ${p.img ? `<img class="post-img" src="${safeHtml(p.img)}" alt="Squad update" loading="lazy">` : ''}
+      ${mediaHtml}
     `;
     feed.insertBefore(d, empty);
   });
@@ -1092,10 +1176,111 @@ function fmtDate(ts) {
 }
 
 function safeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function safeAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// Fetch from backend if configured
+// ── File picker ───────────────────────────────────────
+function onFilePicked(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const warn    = document.getElementById('attach-size-warn');
+  const label   = document.getElementById('attach-label');
+  const preview = document.getElementById('attach-preview');
+  warn.style.display = 'none';
+
+  const isVideo = file.type.startsWith('video/');
+  const maxBytes = isVideo ? VID_MAX_BYTES : IMG_MAX_BYTES;
+
+  if (file.size > maxBytes) {
+    warn.style.display = 'block';
+    input.value = '';
+    return;
+  }
+
+  pendingMediaType = isVideo ? 'video' : 'image';
+  pendingMediaMime = file.type;
+  label.textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    if (isVideo) {
+      pendingMediaDataUrl = dataUrl;
+      showPreviewVideo(dataUrl);
+    } else {
+      compressImage(dataUrl, file.type, compressed => {
+        pendingMediaDataUrl = compressed;
+        showPreviewImage(compressed);
+      });
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressImage(dataUrl, mime, cb) {
+  const img = new Image();
+  img.onload = () => {
+    let { width: w, height: h } = img;
+    if (w > IMG_MAX_PX || h > IMG_MAX_PX) {
+      if (w >= h) { h = Math.round(h * IMG_MAX_PX / w); w = IMG_MAX_PX; }
+      else        { w = Math.round(w * IMG_MAX_PX / h); h = IMG_MAX_PX; }
+    }
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    cb(cv.toDataURL('image/jpeg', IMG_QUALITY));
+  };
+  img.src = dataUrl;
+}
+
+function showPreviewImage(src) {
+  const preview = document.getElementById('attach-preview');
+  // remove any existing media child (keep the remove button)
+  preview.querySelectorAll('img,video').forEach(el => el.remove());
+  const el = document.createElement('img');
+  el.src = src;
+  preview.insertBefore(el, preview.firstChild);
+  preview.style.display = 'block';
+}
+
+function showPreviewVideo(src) {
+  const preview = document.getElementById('attach-preview');
+  preview.querySelectorAll('img,video').forEach(el => el.remove());
+  const el = document.createElement('video');
+  el.src = src; el.controls = true; el.muted = true; el.playsInline = true;
+  el.style.maxHeight = '160px'; el.style.maxWidth = '100%';
+  preview.insertBefore(el, preview.firstChild);
+  preview.style.display = 'block';
+}
+
+function clearAttachment() {
+  pendingMediaDataUrl = null;
+  pendingMediaType    = null;
+  pendingMediaMime    = null;
+  document.getElementById('post-file').value  = '';
+  document.getElementById('attach-label').textContent = '';
+  const preview = document.getElementById('attach-preview');
+  preview.querySelectorAll('img,video').forEach(el => el.remove());
+  preview.style.display = 'none';
+  document.getElementById('attach-size-warn').style.display = 'none';
+}
+
+// ── Lightbox ──────────────────────────────────────────
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Fetch from backend ────────────────────────────────
 async function fetchPosts() {
   if (CFG.appsScriptUrl === 'APPS_SCRIPT_URL_PLACEHOLDER') return;
   try {
@@ -1126,7 +1311,7 @@ async function sha256(str) {
 
 async function verifyPw() {
   const pw = document.getElementById('auth-pw').value;
-  const h = await sha256(pw);
+  const h  = await sha256(pw);
   if (h === CFG.pwHash) {
     authed = true;
     document.getElementById('modal-auth').style.display    = 'none';
@@ -1140,18 +1325,28 @@ async function verifyPw() {
 
 async function submitPost() {
   const msg = document.getElementById('post-msg').value.trim();
-  const img = document.getElementById('post-img').value.trim();
   if (!msg) { alert('Please enter a message.'); return; }
 
-  const post = { ts: new Date().toISOString(), msg, img: img || null };
+  const btn = document.querySelector('#modal-compose .btn-submit');
+  btn.textContent = '⏳ TRANSMITTING…';
+  btn.disabled = true;
+
+  let mediaUrl  = null;
+  let mediaType = null;
+
+  if (pendingMediaDataUrl) {
+    // Store compressed base64 directly — it's included in the post payload
+    // and saved to the sheet. Images are ~30-60 KB after compression; videos
+    // stay as data URLs locally only (too large for the sheet).
+    mediaUrl  = pendingMediaDataUrl;
+    mediaType = pendingMediaType;
+  }
+
+  const post = { ts: new Date().toISOString(), msg, mediaUrl, mediaType };
   posts.push(post);
   localStorage.setItem('squad_posts', JSON.stringify(posts));
-  closePostModal();
-  document.getElementById('post-msg').value = '';
-  document.getElementById('post-img').value = '';
-  renderPosts();
 
-  // Sync to backend
+  // Sync text post metadata to backend
   if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
     try {
       await fetch(CFG.appsScriptUrl, {
@@ -1161,6 +1356,13 @@ async function submitPost() {
       });
     } catch(e) {}
   }
+
+  closePostModal();
+  document.getElementById('post-msg').value = '';
+  clearAttachment();
+  btn.textContent = '📡 TRANSMIT TO SQUAD';
+  btn.disabled = false;
+  renderPosts();
 }
 
 // ── INIT ─────────────────────────────────────────────
