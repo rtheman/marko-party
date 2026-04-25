@@ -1,0 +1,10 @@
+# Google Apps Script — lives in script.google.com, not served by GitHub Pages
+code.gs
+
+# Google Drive native files
+*.gsheet
+*.gdoc
+*.gslides
+
+# macOS
+.DS_Store

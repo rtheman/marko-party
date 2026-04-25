@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARKO TURNS 12 — JOIN THE SQUAD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050510;
+  --surface: #0d0d2b;
+  --cyan: #00d4ff;
+  --magenta: #ff0080;
+  --gold: #ffd700;
+  --orange: #ff4500;
+  --purple: #8b00ff;
+  --green: #25d366;
+  --text: #e0e0ff;
+  --dim: rgba(224,224,255,0.55);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* ── CANVASES ── */
+#particles-canvas {
+  position: fixed; top:0; left:0;
+  width:100%; height:100%;
+  pointer-events: none; z-index:0;
+}
+#confetti-canvas {
+  position: fixed; top:0; left:0;
+  width:100%; height:100%;
+  pointer-events: none; z-index:9999;
+  display: none;
+}
+
+/* ── LOADING SCREEN ── */
+#loading-screen {
+  position: fixed; inset:0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 28px;
+  transition: opacity 0.6s ease;
+}
+.ls-title {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(2.5rem,8vw,4.5rem);
+  letter-spacing: 10px;
+  color: var(--cyan);
+  text-shadow: 0 0 40px rgba(0,212,255,0.8);
+  animation: ls-flicker 3s ease-in-out infinite;
+}
+@keyframes ls-flicker {
+  0%,94%,100%{opacity:1} 96%{opacity:.4}
+}
+.ls-bar-wrap {
+  width: min(340px,80vw); height:6px;
+  background: rgba(255,255,255,0.08);
+  border-radius:3px; overflow:hidden;
+}
+.ls-bar {
+  height:100%;
+  background: linear-gradient(90deg,var(--cyan),var(--purple),var(--magenta));
+  width:0; animation: ls-fill 2s ease-out forwards;
+  box-shadow: 0 0 12px var(--cyan);
+}
+@keyframes ls-fill { to{width:100%} }
+.ls-text {
+  font-size:.7rem; letter-spacing:4px;
+  color: var(--dim); text-transform:uppercase;
+}
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top:0; left:0; right:0;
+  z-index:1000;
+  display: flex; justify-content:center;
+  padding: 10px 20px;
+  background: rgba(5,5,16,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,212,255,0.15);
+}
+.nav-links { display:flex; gap:20px; list-style:none; flex-wrap:wrap; justify-content:center; }
+.nav-links a {
+  color: var(--cyan); text-decoration:none;
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.78rem; letter-spacing:2.5px; text-transform:uppercase;
+  transition: color .2s, text-shadow .2s;
+  padding: 4px 0;
+}
+.nav-links a:hover { color:var(--magenta); text-shadow:0 0 10px var(--magenta); }
+
+/* ── SECTIONS ── */
+section { position:relative; z-index:1; }
+.section-inner { max-width:960px; margin:0 auto; padding:80px 20px; }
+
+/* ── HUD PANEL ── */
+.hud-panel {
+  background: rgba(13,13,43,0.9);
+  border: 1px solid rgba(0,212,255,0.4);
+  box-shadow: 0 0 24px rgba(0,212,255,0.12), inset 0 0 24px rgba(0,212,255,0.04);
+  border-radius:3px; position:relative;
+}
+.hud-panel::before {
+  content:''; position:absolute; top:-1px; left:18px;
+  width:50px; height:2px;
+  background:var(--cyan); box-shadow:0 0 8px var(--cyan);
+}
+.hud-panel::after {
+  content:''; position:absolute; bottom:-1px; right:18px;
+  width:50px; height:2px;
+  background:var(--magenta); box-shadow:0 0 8px var(--magenta);
+}
+.hud-panel.magenta-theme {
+  border-color: rgba(255,0,128,0.4);
+  box-shadow: 0 0 24px rgba(255,0,128,0.12), inset 0 0 24px rgba(255,0,128,0.04);
+}
+.hud-panel.magenta-theme::before { background:var(--magenta); box-shadow:0 0 8px var(--magenta); }
+.hud-panel.magenta-theme::after  { background:var(--cyan);    box-shadow:0 0 8px var(--cyan); }
+
+@keyframes border-cycle {
+  0%  { border-color:rgba(0,212,255,.5); box-shadow:0 0 24px rgba(0,212,255,.2),inset 0 0 20px rgba(0,212,255,.05); }
+  50% { border-color:rgba(255,0,128,.5); box-shadow:0 0 24px rgba(255,0,128,.2),inset 0 0 20px rgba(255,0,128,.05); }
+  100%{ border-color:rgba(0,212,255,.5); box-shadow:0 0 24px rgba(0,212,255,.2),inset 0 0 20px rgba(0,212,255,.05); }
+}
+.hud-animated { animation: border-cycle 5s ease-in-out infinite; }
+
+.hud-label {
+  font-family:'Exo 2',sans-serif; font-size:.62rem;
+  letter-spacing:3px; text-transform:uppercase;
+  color:var(--cyan); opacity:.8; margin-bottom:5px;
+}
+
+/* ── SECTION HEADERS ── */
+.section-title {
+  font-family:'Bangers',cursive;
+  font-size: clamp(2.5rem,7vw,4.2rem);
+  letter-spacing:5px; text-transform:uppercase;
+  text-align:center; margin-bottom:10px;
+}
+.t-cyan    { color:var(--cyan);    text-shadow:0 0 30px rgba(0,212,255,.5); }
+.t-magenta { color:var(--magenta); text-shadow:0 0 30px rgba(255,0,128,.5); }
+.t-gold    { color:var(--gold);    text-shadow:0 0 30px rgba(255,215,0,.5); }
+.t-orange  { color:var(--orange);  text-shadow:0 0 30px rgba(255,69,0,.5); }
+.section-sub {
+  text-align:center; color:var(--dim);
+  font-size:.8rem; letter-spacing:3px; text-transform:uppercase;
+  margin-bottom:52px;
+}
+
+/* ── NEON DIVIDER ── */
+.neon-divider {
+  height:1px; position:relative; z-index:1;
+  background: linear-gradient(90deg,transparent,var(--cyan) 30%,var(--magenta) 70%,transparent);
+  opacity:.35;
+}
+
+/* ═══════════════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════════════ */
+#hero {
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center; padding:90px 20px 60px;
+  overflow:hidden;
+}
+.hero-content { position:relative; z-index:2; }
+
+.hero-badge {
+  display:inline-block;
+  font-family:'Exo 2',sans-serif; font-size:.72rem;
+  letter-spacing:4px; text-transform:uppercase;
+  color:var(--orange); border:1px solid var(--orange);
+  padding:5px 18px; margin-bottom:24px;
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%,100%{box-shadow:0 0 6px rgba(255,69,0,.3)}
+  50%{box-shadow:0 0 22px rgba(255,69,0,.9)}
+}
+
+.hero-title {
+  font-family:'Bangers',cursive;
+  font-size: clamp(4.5rem,16vw,10rem);
+  line-height:.88; letter-spacing:6px;
+  text-transform:uppercase; margin-bottom:6px;
+}
+.hero-title .l1 {
+  display:block; color:var(--cyan);
+  text-shadow:0 0 40px rgba(0,212,255,.7), 0 0 80px rgba(0,212,255,.3),
+              0 4px 0 rgba(0,0,0,.6);
+  animation: flick-c 5s ease-in-out infinite;
+}
+.hero-title .l2 {
+  display:block; color:var(--magenta);
+  font-size: clamp(2.8rem,9vw,6rem);
+  text-shadow:0 0 40px rgba(255,0,128,.7), 0 0 80px rgba(255,0,128,.3),
+              0 3px 0 rgba(0,0,0,.6);
+  animation: flick-m 4.5s ease-in-out infinite;
+}
+@keyframes flick-c {
+  0%,88%,100%{opacity:1;text-shadow:0 0 40px rgba(0,212,255,.7),0 0 80px rgba(0,212,255,.3),0 4px 0 rgba(0,0,0,.6)}
+  90%{opacity:.7;text-shadow:0 0 15px rgba(0,212,255,.3),0 4px 0 rgba(0,0,0,.6)}
+}
+@keyframes flick-m {
+  0%,82%,100%{opacity:1} 84%{opacity:.6}
+}
+
+.hero-level {
+  display:inline-flex; align-items:center; gap:14px;
+  margin:22px 0 36px;
+  padding:10px 28px;
+  background:rgba(255,215,0,.08);
+  border:1px solid var(--gold);
+  border-radius:3px;
+  box-shadow:0 0 24px rgba(255,215,0,.25);
+  animation: gold-pulse 3s ease-in-out infinite;
+}
+@keyframes gold-pulse {
+  0%,100%{box-shadow:0 0 24px rgba(255,215,0,.25)}
+  50%{box-shadow:0 0 40px rgba(255,215,0,.6)}
+}
+.hero-level-label {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:1rem; letter-spacing:3px; color:var(--gold);
+}
+.hero-level-num {
+  font-family:'Bangers',cursive; font-size:3.2rem;
+  color:var(--gold); text-shadow:0 0 24px rgba(255,215,0,.9);
+  line-height:1;
+}
+
+.hero-hud {
+  display:flex; flex-wrap:wrap; gap:16px; justify-content:center;
+}
+.hud-card { padding:14px 22px; min-width:190px; }
+.hud-card-val {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.95rem; color:var(--text); letter-spacing:1px; line-height:1.4;
+}
+
+.scroll-cue {
+  position:absolute; bottom:28px; left:50%;
+  transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  color:var(--dim); font-size:.65rem; letter-spacing:3px; text-transform:uppercase;
+  animation:scroll-bob 2.2s ease-in-out infinite;
+}
+@keyframes scroll-bob {
+  0%,100%{transform:translateX(-50%) translateY(0)}
+  50%{transform:translateX(-50%) translateY(8px)}
+}
+
+/* ═══════════════════════════════════════════════
+   MISSION BRIEFING
+   ═══════════════════════════════════════════════ */
+#mission { padding:0; }
+.mission-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:28px;
+}
+@media(max-width:680px){ .mission-grid{grid-template-columns:1fr} }
+
+.mission-day { padding:26px 24px; }
+.day-title {
+  font-family:'Bangers',cursive; font-size:1.7rem;
+  letter-spacing:3px; margin-bottom:3px;
+}
+.day-title.d1 { color:var(--cyan); }
+.day-title.d2 { color:var(--magenta); }
+.day-venue {
+  font-size:.75rem; color:var(--dim);
+  letter-spacing:2px; text-transform:uppercase;
+  margin-bottom:22px; padding-bottom:16px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.obj { display:flex; gap:14px; align-items:flex-start; margin-bottom:22px; position:relative; }
+.obj::before {
+  content:''; position:absolute;
+  left:42px; top:34px; bottom:-22px; width:1px;
+  background:rgba(255,255,255,0.07);
+}
+.obj:last-child::before { display:none; }
+.obj-time {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.78rem; color:var(--gold); letter-spacing:1px;
+  padding-top:3px; min-width:48px; white-space:nowrap;
+}
+.obj-icon {
+  width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.95rem; flex-shrink:0; border:1px solid;
+}
+.oi-cyan   { background:rgba(0,212,255,.12); border-color:var(--cyan);    box-shadow:0 0 10px rgba(0,212,255,.3); }
+.oi-gold   { background:rgba(255,215,0,.12); border-color:var(--gold);    box-shadow:0 0 10px rgba(255,215,0,.3); }
+.oi-purple { background:rgba(139,0,255,.12); border-color:var(--purple);  box-shadow:0 0 10px rgba(139,0,255,.3); }
+.oi-magenta{ background:rgba(255,0,128,.12); border-color:var(--magenta); box-shadow:0 0 10px rgba(255,0,128,.4); animation:boss-pulse 1.8s ease-in-out infinite; }
+.oi-orange { background:rgba(255,69,0,.12);  border-color:var(--orange);  box-shadow:0 0 10px rgba(255,69,0,.3); }
+@keyframes boss-pulse {
+  0%,100%{box-shadow:0 0 10px rgba(255,0,128,.4)}
+  50%{box-shadow:0 0 22px rgba(255,0,128,.9)}
+}
+.obj-info { flex:1; }
+.obj-name {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.88rem; letter-spacing:2px; text-transform:uppercase; color:var(--text);
+}
+.obj-desc { font-size:.82rem; color:var(--dim); margin-top:2px; line-height:1.5; }
+
+/* ═══════════════════════════════════════════════
+   RSVP
+   ═══════════════════════════════════════════════ */
+#rsvp { padding:0; }
+.rsvp-wrap { max-width:600px; margin:0 auto; padding:44px 36px; text-align:center; }
+.rsvp-greeting {
+  font-family:'Exo 2',sans-serif; font-size:1rem;
+  color:var(--cyan); letter-spacing:3px; margin-bottom:10px;
+  text-transform:uppercase;
+}
+.rsvp-q {
+  font-family:'Bangers',cursive;
+  font-size:clamp(1.8rem,5vw,2.8rem);
+  letter-spacing:3px; color:var(--text);
+  margin-bottom:36px; line-height:1.2;
+}
+.rsvp-btns { display:flex; flex-direction:column; gap:14px; align-items:center; }
+
+.btn-join {
+  width:100%; max-width:380px;
+  padding:20px 32px;
+  font-family:'Bangers',cursive; font-size:1.7rem;
+  letter-spacing:3px; text-transform:uppercase;
+  background: linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,212,255,.04));
+  border:2px solid var(--cyan); color:var(--cyan);
+  cursor:pointer; border-radius:3px;
+  position:relative; overflow:hidden;
+  box-shadow:0 0 22px rgba(0,212,255,.2);
+  transition:all .2s;
+}
+.btn-join::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(0,212,255,.35),transparent);
+  opacity:0; transition:opacity .2s;
+}
+.btn-join:hover::before { opacity:1; }
+.btn-join:hover { box-shadow:0 0 44px rgba(0,212,255,.55); transform:translateY(-3px); }
+.btn-join:active { transform:translateY(0); }
+
+.btn-decline {
+  background:none; border:none; color:var(--dim);
+  font-family:'Rajdhani',sans-serif; font-size:.9rem;
+  cursor:pointer; letter-spacing:2px; text-decoration:underline;
+  transition:color .2s;
+}
+.btn-decline:hover { color:var(--magenta); }
+
+/* RSVP States */
+.rsvp-state { display:none; }
+.rsvp-state.active { display:block; }
+
+/* Victory */
+.victory { padding:36px 20px; text-align:center; }
+.v-icon { font-size:5.5rem; animation:v-pop .6s cubic-bezier(.36,.07,.19,.97); }
+@keyframes v-pop { 0%{transform:scale(0)} 60%{transform:scale(1.25)} 100%{transform:scale(1)} }
+.v-title {
+  font-family:'Bangers',cursive;
+  font-size:clamp(2rem,7vw,4rem); letter-spacing:4px;
+  color:var(--gold); text-shadow:0 0 30px rgba(255,215,0,.7);
+  margin:18px 0 8px;
+  animation:v-glow 2s ease-in-out infinite;
+}
+@keyframes v-glow {
+  0%,100%{text-shadow:0 0 30px rgba(255,215,0,.7)}
+  50%{text-shadow:0 0 60px rgba(255,215,0,1),0 0 100px rgba(255,215,0,.5)}
+}
+.v-sub { color:var(--cyan); letter-spacing:3px; text-transform:uppercase; font-size:.85rem; margin-bottom:26px; }
+.squad-badge {
+  display:inline-block; padding:13px 34px;
+  background:rgba(255,215,0,.1); border:2px solid var(--gold);
+  border-radius:3px; font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:1rem; letter-spacing:3px; color:var(--gold);
+  box-shadow:0 0 28px rgba(255,215,0,.35);
+  animation:badge-in .5s .4s both;
+}
+@keyframes badge-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.v-details { margin-top:24px; color:var(--dim); font-size:.92rem; line-height:1.7; }
+
+/* Decline */
+.decline { padding:36px 20px; text-align:center; }
+.d-icon { font-size:3.5rem; margin-bottom:16px; }
+.d-title {
+  font-family:'Bangers',cursive; font-size:2.2rem;
+  letter-spacing:3px; color:var(--dim); margin-bottom:12px;
+}
+
+/* ═══════════════════════════════════════════════
+   BULLETIN BOARD
+   ═══════════════════════════════════════════════ */
+#bulletin { padding:0; }
+.bulletin-feed { display:flex; flex-direction:column; gap:16px; margin-bottom:32px; }
+.post {
+  padding:20px 24px; border-left:3px solid var(--magenta);
+  box-shadow:-4px 0 20px rgba(255,0,128,.15);
+}
+.post-hdr { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.post-avatar {
+  width:32px; height:32px;
+  background:rgba(255,0,128,.15); border:1px solid var(--magenta);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:.95rem;
+}
+.post-author {
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.8rem; letter-spacing:2px; text-transform:uppercase; color:var(--magenta);
+}
+.post-time { font-size:.72rem; color:var(--dim); letter-spacing:1px; margin-left:auto; }
+.post-body { font-size:.95rem; color:var(--text); line-height:1.65; }
+.post-img { margin-top:12px; max-width:100%; border-radius:3px; border:1px solid rgba(255,0,128,.3); }
+
+.bulletin-empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:.88rem; letter-spacing:2px; }
+.bulletin-cta { text-align:center; }
+
+.btn-post {
+  padding:13px 30px;
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.8rem; letter-spacing:3px; text-transform:uppercase;
+  background:rgba(255,0,128,.08); border:1px solid var(--magenta);
+  color:var(--magenta); cursor:pointer; border-radius:3px; transition:all .2s;
+}
+.btn-post:hover { background:rgba(255,0,128,.18); box-shadow:0 0 20px rgba(255,0,128,.4); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position:fixed; inset:0;
+  background:rgba(5,5,16,.92);
+  backdrop-filter:blur(6px);
+  z-index:5000; display:none;
+  align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal-box { max-width:480px; width:100%; padding:34px; position:relative; }
+.modal-close {
+  position:absolute; top:14px; right:16px;
+  background:none; border:none; color:var(--dim);
+  font-size:1.4rem; cursor:pointer; transition:color .2s;
+}
+.modal-close:hover { color:var(--text); }
+.modal-title {
+  font-family:'Bangers',cursive; font-size:2rem;
+  letter-spacing:3px; color:var(--magenta);
+  margin-bottom:26px; text-align:center;
+}
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:var(--dim); margin-bottom:7px; }
+.form-input, .form-ta {
+  width:100%;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.15);
+  border-radius:3px; padding:12px 16px;
+  color:var(--text); font-family:'Rajdhani',sans-serif; font-size:1rem;
+  outline:none; transition:border-color .2s;
+}
+.form-input:focus, .form-ta:focus { border-color:var(--magenta); box-shadow:0 0 10px rgba(255,0,128,.2); }
+.form-ta { min-height:110px; resize:vertical; }
+.form-err { color:var(--magenta); font-size:.78rem; margin-top:5px; display:none; }
+.modal-btns { display:flex; gap:12px; margin-top:22px; }
+.btn-submit {
+  flex:1; padding:13px;
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.85rem; letter-spacing:2px; text-transform:uppercase;
+  background:rgba(255,0,128,.15); border:1px solid var(--magenta);
+  color:var(--magenta); cursor:pointer; border-radius:3px; transition:all .2s;
+}
+.btn-submit:hover { background:rgba(255,0,128,.28); box-shadow:0 0 20px rgba(255,0,128,.4); }
+.btn-cancel {
+  padding:13px 18px;
+  font-family:'Exo 2',sans-serif; font-weight:700;
+  font-size:.85rem; letter-spacing:2px; text-transform:uppercase;
+  background:none; border:1px solid rgba(255,255,255,.15);
+  color:var(--dim); cursor:pointer; border-radius:3px; transition:all .2s;
+}
+.btn-cancel:hover { border-color:rgba(255,255,255,.3); color:var(--text); }
+
+/* ═══════════════════════════════════════════════
+   MESSAGE HQ
+   ═══════════════════════════════════════════════ */
+#hq { padding:0; }
+.hq-wrap { max-width:480px; margin:0 auto; padding:44px 36px; text-align:center; }
+.hq-icon { font-size:4.5rem; margin-bottom:14px; animation:radio-pulse 2.5s ease-in-out infinite; }
+@keyframes radio-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+.hq-sub-title {
+  font-family:'Bangers',cursive; font-size:1.9rem;
+  letter-spacing:3px; color:var(--cyan); margin-bottom:14px;
+}
+.hq-desc { color:var(--dim); font-size:.92rem; line-height:1.65; margin-bottom:32px; letter-spacing:.5px; }
+.btn-wa {
+  display:inline-flex; align-items:center; gap:12px;
+  padding:18px 38px;
+  background:linear-gradient(135deg,rgba(37,211,102,.18),rgba(37,211,102,.04));
+  border:2px solid var(--green); color:var(--green);
+  text-decoration:none;
+  font-family:'Bangers',cursive; font-size:1.7rem; letter-spacing:3px;
+  border-radius:3px; transition:all .2s;
+  box-shadow:0 0 22px rgba(37,211,102,.2);
+}
+.btn-wa:hover { box-shadow:0 0 44px rgba(37,211,102,.55); transform:translateY(-3px); }
+
+/* ── FOOTER ── */
+footer {
+  text-align:center; padding:40px 20px; position:relative; z-index:1;
+  border-top:1px solid rgba(255,255,255,.05);
+  color:rgba(224,224,255,.28); font-size:.7rem; letter-spacing:2px;
+}
+
+/* ── SPINNER FOR RSVP SUBMIT ── */
+.spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(0,212,255,.3); border-top-color:var(--cyan); border-radius:50%; animation:spin .7s linear infinite; margin-left:10px; vertical-align:middle; }
+@keyframes spin { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<!-- ══ LOADING SCREEN ══ -->
+<div id="loading-screen">
+  <div class="ls-title">LOADING...</div>
+  <div class="ls-bar-wrap"><div class="ls-bar"></div></div>
+  <div class="ls-text">Initializing Squad Protocol · Level 12</div>
+</div>
+
+<!-- ══ CANVASES ══ -->
+<canvas id="particles-canvas"></canvas>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- ══ NAV ══ -->
+<nav class="nav">
+  <ul class="nav-links">
+    <li><a href="#hero">HOME</a></li>
+    <li><a href="#mission">MISSION</a></li>
+    <li><a href="#rsvp">JOIN SQUAD</a></li>
+    <li><a href="#bulletin">BULLETIN</a></li>
+    <li><a href="#hq">CONTACT HQ</a></li>
+  </ul>
+</nav>
+
+<!-- ══════════════════════════════════════
+     HERO
+══════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-content">
+    <div class="hero-badge">⚡ URGENT TRANSMISSION · SQUAD ONLY ⚡</div>
+
+    <h1 class="hero-title">
+      <span class="l1">MARKO</span>
+      <span class="l2">TURNS 12</span>
+    </h1>
+
+    <div class="hero-level">
+      <span class="hero-level-label">LEVEL UP ➤</span>
+      <span class="hero-level-num">12</span>
+    </div>
+
+    <div class="hero-hud">
+      <div class="hud-panel hud-card">
+        <div class="hud-label">📅 Mission Window</div>
+        <div class="hud-card-val">SAT 9 MAY → SUN 10 MAY</div>
+      </div>
+      <div class="hud-panel hud-card">
+        <div class="hud-label">⏰ Deploy Time</div>
+        <div class="hud-card-val">17:00 · SATURDAY</div>
+      </div>
+      <div class="hud-panel hud-card">
+        <div class="hud-label">📍 Day 1 Arena</div>
+        <div class="hud-card-val">Breisgauer Str. 53<br><small style="font-size:.82em;color:var(--dim)">14129 BERLIN</small></div>
+      </div>
+      <div class="hud-panel hud-card">
+        <div class="hud-label">🍕 Day 2 Arena</div>
+        <div class="hud-card-val">Pizza Hut<br><small style="font-size:.82em;color:var(--dim)">POTSDAMER PLATZ</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue">
+    <span>SCROLL FOR BRIEFING</span><span>▼</span>
+  </div>
+</section>
+
+<div class="neon-divider"></div>
+
+<!-- ══════════════════════════════════════
+     MISSION BRIEFING
+══════════════════════════════════════ -->
+<section id="mission">
+  <div class="section-inner">
+    <div class="section-title t-cyan">MISSION BRIEFING</div>
+    <div class="section-sub">⚔ CLASSIFIED OBJECTIVE TIMELINE · EYES ONLY ⚔</div>
+
+    <div class="mission-grid">
+
+      <!-- DAY 1 -->
+      <div class="hud-panel mission-day">
+        <div class="day-title d1">DAY 01 — SAT 9 MAY</div>
+        <div class="day-venue">📍 Breisgauer Str. 53 · 14129 Berlin</div>
+
+        <div class="obj">
+          <div class="obj-time">17:00</div>
+          <div class="obj-icon oi-cyan">⚔️</div>
+          <div class="obj-info">
+            <div class="obj-name">Squad Deploys</div>
+            <div class="obj-desc">Players arrive at base. Check in at the arena.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">17:30</div>
+          <div class="obj-icon oi-cyan">🎮</div>
+          <div class="obj-info">
+            <div class="obj-name">Gaming Arena Open</div>
+            <div class="obj-desc">Free play — Brawl Stars, Bite by Night, all-out battle.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">19:00</div>
+          <div class="obj-icon oi-gold">🍕</div>
+          <div class="obj-info">
+            <div class="obj-name">XP Recovery Phase</div>
+            <div class="obj-desc">Fuel up. Squad dinner at base HQ.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">20:00</div>
+          <div class="obj-icon oi-magenta">🎂</div>
+          <div class="obj-info">
+            <div class="obj-name">BOSS BATTLE 🔥</div>
+            <div class="obj-desc">Marko unlocks <strong style="color:var(--gold)">Level 12</strong>. Cake · Candles · Chaos.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">21:00</div>
+          <div class="obj-icon oi-cyan">🌙</div>
+          <div class="obj-info">
+            <div class="obj-name">Night Mission</div>
+            <div class="obj-desc">Free roam — gaming, movies, squad vibes.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">LATE</div>
+          <div class="obj-icon oi-purple">💤</div>
+          <div class="obj-info">
+            <div class="obj-name">Sleep Mode Activated</div>
+            <div class="obj-desc">Mandatory recharge. It's a sleepover!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAY 2 -->
+      <div class="hud-panel mission-day">
+        <div class="day-title d2">DAY 02 — SUN 10 MAY</div>
+        <div class="day-venue">📍 Potsdamer Platz · Pizza Hut · Berlin</div>
+
+        <div class="obj">
+          <div class="obj-time">09:00</div>
+          <div class="obj-icon oi-cyan">☀️</div>
+          <div class="obj-info">
+            <div class="obj-name">Respawn Point</div>
+            <div class="obj-desc">Wake up · Breakfast · Reload your health bar.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">10:00</div>
+          <div class="obj-icon oi-cyan">🎮</div>
+          <div class="obj-info">
+            <div class="obj-name">Final Free Play</div>
+            <div class="obj-desc">Last gaming session before extraction.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">11:00</div>
+          <div class="obj-icon oi-gold">🚀</div>
+          <div class="obj-info">
+            <div class="obj-name">Extraction</div>
+            <div class="obj-desc">Squad moves out → Potsdamer Platz.</div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">12:00</div>
+          <div class="obj-icon oi-gold">🍕</div>
+          <div class="obj-info">
+            <div class="obj-name">Pizza Hut Raid</div>
+            <div class="obj-desc">Final feast at the drop zone. <br><span style="color:var(--gold);font-size:.78rem">📍 Pizza Hut · Potsdamer Platz</span></div>
+          </div>
+        </div>
+
+        <div class="obj">
+          <div class="obj-time">13:00</div>
+          <div class="obj-icon oi-orange">🏆</div>
+          <div class="obj-info">
+            <div class="obj-name">MISSION COMPLETE</div>
+            <div class="obj-desc">GG. Till the next server. 👋</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /mission-grid -->
+  </div>
+</section>
+
+<div class="neon-divider"></div>
+
+<!-- ══════════════════════════════════════
+     RSVP
+══════════════════════════════════════ -->
+<section id="rsvp">
+  <div class="section-inner">
+    <div class="section-title t-magenta">JOIN THE SQUAD</div>
+    <div class="section-sub">🎮 CONFIRM YOUR DEPLOYMENT STATUS 🎮</div>
+
+    <div class="hud-panel magenta-theme hud-animated rsvp-wrap">
+
+      <!-- DEFAULT -->
+      <div id="rsvp-default" class="rsvp-state active">
+        <div class="rsvp-greeting" id="rsvp-greeting">PLAYER, YOU'VE BEEN SELECTED</div>
+        <div class="rsvp-q" id="rsvp-q">
+          You've been chosen for Marko's elite squad.<br>Will you join the battle on May 9th?
+        </div>
+        <div class="rsvp-btns">
+          <button class="btn-join" id="btn-join-squad" onclick="handleRSVP('yes')">
+            ✅ I'M IN — JOIN SQUAD
+          </button>
+          <button class="btn-decline" onclick="handleRSVP('no')">Can't make it this time</button>
+        </div>
+        <p style="margin-top:20px;font-size:.72rem;color:var(--dim);letter-spacing:1.5px" id="rsvp-no-guest" style="display:none"></p>
+      </div>
+
+      <!-- ACCEPTED -->
+      <div id="rsvp-accepted" class="rsvp-state">
+        <div class="victory">
+          <div class="v-icon">🏆</div>
+          <div class="v-title">YOU'RE IN THE SQUAD!</div>
+          <div class="v-sub">Deployment Confirmed · Locked In</div>
+          <div class="squad-badge">🎮 SQUAD MEMBER CONFIRMED 🎮</div>
+          <div class="v-details">
+            SAT 9 MAY · 17:00<br>
+            Breisgauer Str. 53, 14129 Berlin<br>
+            <span style="color:var(--gold)">See you on the battlefield. 🔥</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DECLINED -->
+      <div id="rsvp-declined" class="rsvp-state">
+        <div class="decline">
+          <div class="d-icon">😔</div>
+          <div class="d-title">RESPAWN PENDING...</div>
+          <p style="color:var(--dim);font-size:.92rem;line-height:1.65">
+            No worries, soldier. We'll miss you on the battlefield.<br>
+            Maybe next mission. Stay frosty. 🫡
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /rsvp-wrap -->
+  </div>
+</section>
+
+<div class="neon-divider"></div>
+
+<!-- ══════════════════════════════════════
+     BULLETIN BOARD
+══════════════════════════════════════ -->
+<section id="bulletin">
+  <div class="section-inner">
+    <div class="section-title t-gold">SQUAD BULLETIN BOARD</div>
+    <div class="section-sub">📡 LIVE TRANSMISSIONS FROM HQ 📡</div>
+
+    <div class="bulletin-feed" id="bulletin-feed">
+      <div class="hud-panel bulletin-empty" id="bulletin-empty">
+        📻 No transmissions yet. Check back soon, soldier.
+      </div>
+    </div>
+
+    <div class="bulletin-cta">
+      <button class="btn-post" onclick="openPostModal()">📢 POST SQUAD UPDATE  [ORGANISER ONLY]</button>
+    </div>
+  </div>
+</section>
+
+<div class="neon-divider"></div>
+
+<!-- ══════════════════════════════════════
+     MESSAGE HQ
+══════════════════════════════════════ -->
+<section id="hq">
+  <div class="section-inner">
+    <div class="section-title t-cyan">MESSAGE HQ</div>
+    <div class="section-sub">📡 DIRECT LINE TO THE COMMANDER 📡</div>
+
+    <div class="hud-panel hq-wrap">
+      <div class="hq-icon">📻</div>
+      <div class="hq-sub-title">DIRECT COMMS OPEN</div>
+      <div class="hq-desc">
+        Need intel? Got a question about the mission?<br>
+        Open a secure line directly to HQ.
+      </div>
+      <a class="btn-wa" href="https://wa.me/15712760379" target="_blank" rel="noopener">
+        <span>💬</span><span>MESSAGE HQ</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <p>⚡ MARKO'S BIRTHDAY SQUAD · BERLIN · MAY 9–10 ⚡</p>
+  <p style="margin-top:8px;opacity:.5">CLASSIFIED TRANSMISSION · SQUAD EYES ONLY</p>
+</footer>
+
+<!-- ══ BULLETIN POST MODAL ══ -->
+<div class="modal-overlay" id="post-modal">
+  <div class="hud-panel magenta-theme modal-box">
+    <button class="modal-close" onclick="closePostModal()">✕</button>
+    <div class="modal-title">POST SQUAD UPDATE</div>
+
+    <div id="modal-auth">
+      <div class="form-group">
+        <label class="form-label">Commander Password</label>
+        <input type="password" class="form-input" id="auth-pw"
+               placeholder="Enter organiser password"
+               onkeypress="if(event.key==='Enter')verifyPw()">
+        <div class="form-err" id="auth-err">⚠ Access denied. Wrong password.</div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-submit" onclick="verifyPw()">AUTHENTICATE</button>
+        <button class="btn-cancel" onclick="closePostModal()">ABORT</button>
+      </div>
+    </div>
+
+    <div id="modal-compose" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Transmission Message</label>
+        <textarea class="form-ta" id="post-msg" placeholder="Type your squad update…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Image URL (optional)</label>
+        <input type="url" class="form-input" id="post-img" placeholder="https://…">
+      </div>
+      <div class="modal-btns">
+        <button class="btn-submit" onclick="submitPost()">📡 TRANSMIT TO SQUAD</button>
+        <button class="btn-cancel" onclick="closePostModal()">ABORT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════ -->
+<script>
+// ── CONFIG ──────────────────────────────────────────
+const CFG = {
+  // Replace with your deployed Apps Script URL after Step 4:
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyMmV-hgnM3AyZltSVguKWvC_toIIC92oqSJEZGi8kxyUJXNLw5lhkegFao2RHLAGE/exec',
+  // SHA-256 of "Marko12"
+  pwHash: '845276a01681b8774501f4e5b3a49f2084ce34e5f223a55bd2758100ca309209',
+};
+
+// Guest table  (id → display name)
+const GUESTS = {
+  'henric': 'Henric',
+  'marko':  'Marko',
+};
+
+// ── LOADING SCREEN ───────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    ls.style.opacity = '0';
+    setTimeout(() => { ls.style.display = 'none'; }, 650);
+  }, 2100);
+});
+
+// ── PARTICLES ────────────────────────────────────────
+(function initParticles() {
+  const cv = document.getElementById('particles-canvas');
+  const cx = cv.getContext('2d');
+  const resize = () => { cv.width = innerWidth; cv.height = innerHeight; };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const COLS = ['#00d4ff','#ff0080','#ffd700','#8b00ff','#ff4500'];
+  function mkPart(fromBottom) {
+    return {
+      x: Math.random() * cv.width,
+      y: fromBottom ? cv.height + 8 : Math.random() * cv.height,
+      r: Math.random() * 1.8 + 0.4,
+      col: COLS[Math.random() * COLS.length | 0],
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -(Math.random() * 0.5 + 0.15),
+      a: Math.random() * 0.55 + 0.15,
+      t: Math.random() * Math.PI * 2,
+    };
+  }
+  const parts = Array.from({length: 90}, () => mkPart(false));
+
+  (function loop() {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    parts.forEach((p, i) => {
+      p.x += p.vx; p.y += p.vy; p.t += 0.04;
+      const alpha = p.a * (0.65 + 0.35 * Math.sin(p.t));
+      cx.beginPath();
+      cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      cx.fillStyle = p.col;
+      cx.globalAlpha = alpha;
+      cx.shadowBlur = 7; cx.shadowColor = p.col;
+      cx.fill();
+      cx.globalAlpha = 1; cx.shadowBlur = 0;
+      if (p.y < -10 || p.x < -10 || p.x > cv.width + 10)
+        parts[i] = mkPart(true);
+    });
+    requestAnimationFrame(loop);
+  })();
+})();
+
+// ── RSVP ─────────────────────────────────────────────
+let guestId = null, guestName = null;
+
+function initGuest() {
+  const p = new URLSearchParams(location.search);
+  const id = (p.get('guest') || '').toLowerCase();
+  if (id && GUESTS[id]) {
+    guestId = id;
+    guestName = GUESTS[id];
+    document.getElementById('rsvp-greeting').textContent =
+      `${guestName.toUpperCase()}, YOU'VE BEEN SELECTED`;
+    document.getElementById('rsvp-q').innerHTML =
+      `<strong style="color:var(--cyan)">${guestName}</strong>, you've been chosen for Marko's elite squad.<br>Will you join the battle on May 9th?`;
+    // Check previous response
+    const prev = localStorage.getItem('rsvp_' + guestId);
+    if (prev === 'yes') showState('accepted');
+    else if (prev === 'no') showState('declined');
+  } else {
+    document.getElementById('rsvp-greeting').textContent = 'PLAYER';
+    document.getElementById('rsvp-q').innerHTML =
+      'Use your personal invite link to RSVP.<br><small style="font-size:.7em;letter-spacing:1px;color:var(--dim)">e.g. …/index.html?guest=yourname</small>';
+    document.getElementById('btn-join-squad').disabled = true;
+    document.getElementById('btn-join-squad').style.opacity = '.35';
+    document.getElementById('btn-join-squad').style.cursor = 'not-allowed';
+    document.querySelector('.btn-decline').style.display = 'none';
+  }
+}
+
+function showState(s) {
+  document.querySelectorAll('.rsvp-state').forEach(el => el.classList.remove('active'));
+  document.getElementById('rsvp-' + s).classList.add('active');
+}
+
+async function handleRSVP(resp) {
+  if (!guestId) return;
+
+  // Optimistic UI
+  localStorage.setItem('rsvp_' + guestId, resp);
+  if (resp === 'yes') {
+    showState('accepted');
+    launchConfetti();
+    playJingle();
+  } else {
+    showState('declined');
+  }
+
+  // Sync to backend
+  if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
+    try {
+      await fetch(CFG.appsScriptUrl, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'rsvp', guestId, guestName, response: resp }),
+      });
+    } catch (e) { console.warn('RSVP sync failed', e); }
+  }
+}
+
+// ── CONFETTI ─────────────────────────────────────────
+function launchConfetti() {
+  const cv = document.getElementById('confetti-canvas');
+  cv.style.display = 'block';
+  const cx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+
+  const COLS = ['#00d4ff','#ff0080','#ffd700','#ff4500','#8b00ff','#25d366','#ffffff'];
+  const pieces = Array.from({length:180}, () => ({
+    x: Math.random() * cv.width, y: -20,
+    w: Math.random() * 10 + 5, h: Math.random() * 6 + 3,
+    col: COLS[Math.random() * COLS.length | 0],
+    vx: (Math.random() - 0.5) * 5,
+    vy: Math.random() * 5 + 2,
+    rot: Math.random() * 360, vr: (Math.random() - 0.5) * 12,
+    alpha: 1,
+  }));
+
+  let f = 0;
+  (function draw() {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if (p.y > cv.height * 0.65) p.alpha -= 0.018;
+      cx.save();
+      cx.globalAlpha = Math.max(0, p.alpha);
+      cx.translate(p.x, p.y);
+      cx.rotate(p.rot * Math.PI / 180);
+      cx.fillStyle = p.col;
+      cx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      cx.restore();
+    });
+    if (++f < 200 && pieces.some(p => p.alpha > 0)) requestAnimationFrame(draw);
+    else { cx.clearRect(0,0,cv.width,cv.height); cv.style.display='none'; }
+  })();
+}
+
+function playJingle() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [[523,.0],[659,.15],[784,.3],[1047,.45]].forEach(([f,t]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value = f; o.type = 'square';
+      g.gain.setValueAtTime(0.09, ac.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + t + 0.32);
+      o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.35);
+    });
+  } catch(e) {}
+}
+
+// ── BULLETIN BOARD ───────────────────────────────────
+let posts = JSON.parse(localStorage.getItem('squad_posts') || '[]');
+let authed = false;
+
+function renderPosts() {
+  const feed = document.getElementById('bulletin-feed');
+  const empty = document.getElementById('bulletin-empty');
+  feed.querySelectorAll('.post').forEach(el => el.remove());
+
+  if (posts.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  [...posts].reverse().forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'hud-panel post';
+    d.innerHTML = `
+      <div class="post-hdr">
+        <div class="post-avatar">📢</div>
+        <span class="post-author">HQ Commander</span>
+        <span class="post-time">${fmtDate(p.ts)}</span>
+      </div>
+      <div class="post-body">${safeHtml(p.msg)}</div>
+      ${p.img ? `<img class="post-img" src="${safeHtml(p.img)}" alt="Squad update" loading="lazy">` : ''}
+    `;
+    feed.insertBefore(d, empty);
+  });
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function safeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Fetch from backend if configured
+async function fetchPosts() {
+  if (CFG.appsScriptUrl === 'APPS_SCRIPT_URL_PLACEHOLDER') return;
+  try {
+    const r = await fetch(CFG.appsScriptUrl + '?action=posts');
+    const data = await r.json();
+    if (data.posts && Array.isArray(data.posts)) {
+      posts = data.posts;
+      localStorage.setItem('squad_posts', JSON.stringify(posts));
+      renderPosts();
+    }
+  } catch(e) { console.warn('Fetch posts failed', e); }
+}
+
+function openPostModal() {
+  document.getElementById('post-modal').classList.add('open');
+  document.getElementById('modal-auth').style.display    = authed ? 'none' : 'block';
+  document.getElementById('modal-compose').style.display = authed ? 'block' : 'none';
+  document.getElementById('auth-err').style.display = 'none';
+}
+function closePostModal() {
+  document.getElementById('post-modal').classList.remove('open');
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function verifyPw() {
+  const pw = document.getElementById('auth-pw').value;
+  const h = await sha256(pw);
+  if (h === CFG.pwHash) {
+    authed = true;
+    document.getElementById('modal-auth').style.display    = 'none';
+    document.getElementById('modal-compose').style.display = 'block';
+    document.getElementById('auth-err').style.display      = 'none';
+  } else {
+    document.getElementById('auth-err').style.display = 'block';
+    document.getElementById('auth-pw').value = '';
+  }
+}
+
+async function submitPost() {
+  const msg = document.getElementById('post-msg').value.trim();
+  const img = document.getElementById('post-img').value.trim();
+  if (!msg) { alert('Please enter a message.'); return; }
+
+  const post = { ts: new Date().toISOString(), msg, img: img || null };
+  posts.push(post);
+  localStorage.setItem('squad_posts', JSON.stringify(posts));
+  closePostModal();
+  document.getElementById('post-msg').value = '';
+  document.getElementById('post-img').value = '';
+  renderPosts();
+
+  // Sync to backend
+  if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
+    try {
+      await fetch(CFG.appsScriptUrl, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'post', ...post }),
+      });
+    } catch(e) {}
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initGuest();
+  renderPosts();
+  fetchPosts();
+});
+</script>
+</body>
+</html>
