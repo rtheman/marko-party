@@ -115,6 +115,36 @@ body::after {
 }
 .nav-links a:hover { color:var(--magenta); text-shadow:0 0 10px var(--magenta); }
 
+/* ── INVITE BANNER ── */
+#invite-banner {
+  position: fixed; top: 41px; left: 0; right: 0;
+  z-index: 999;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 7px 20px;
+  background: rgba(5,5,16,0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,215,0,0.18);
+  font-family: 'Exo 2', sans-serif;
+  font-size: .68rem; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(224,224,255,0.55);
+}
+#invite-banner a {
+  color: var(--gold);
+  text-decoration: none;
+  border: 1px solid rgba(255,215,0,0.4);
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  transition: all .2s;
+  white-space: nowrap;
+}
+#invite-banner a:hover {
+  background: rgba(255,215,0,0.1);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
 /* ── SECTIONS ── */
 section { position:relative; z-index:1; }
 .section-inner { max-width:960px; margin:0 auto; padding:80px 20px; }
@@ -189,6 +219,8 @@ section { position:relative; z-index:1; }
   text-align:center; padding:90px 20px 60px;
   overflow:hidden;
 }
+/* Extra offset when the invite banner is visible */
+body.has-invite-banner #hero { padding-top: 122px; }
 .hero-content { position:relative; z-index:2; }
 
 .hero-badge {
@@ -686,7 +718,7 @@ footer {
 @keyframes spin { to{transform:rotate(360deg)} }
 </style>
 </head>
-<body>
+<body class="has-invite-banner">
 
 <!-- ══ LOADING SCREEN ══ -->
 <div id="loading-screen">
@@ -709,6 +741,12 @@ footer {
     <li><a href="#hq">CONTACT HQ</a></li>
   </ul>
 </nav>
+
+<!-- ══ INVITE BANNER (hidden for registered guests) ══ -->
+<div id="invite-banner">
+  <span>📩 Received an invite?</span>
+  <a href="https://rtheman.github.io/marko-party/?guest=Guest-Name#rsvp">USE YOUR PERSONAL LINK TO RSVP →</a>
+</div>
 
 <!-- ══════════════════════════════════════
      HERO
@@ -1115,6 +1153,10 @@ function initGuest() {
   if (id && GUESTS[id]) {
     guestId = id;
     guestName = GUESTS[id];
+    // Hide the invite banner — this is a registered guest with their personal link
+    const banner = document.getElementById('invite-banner');
+    if (banner) banner.style.display = 'none';
+    document.body.classList.remove('has-invite-banner');
     document.getElementById('rsvp-greeting').textContent =
       `${guestName.toUpperCase()}, YOU'VE BEEN SELECTED`;
     document.getElementById('rsvp-q').innerHTML =
