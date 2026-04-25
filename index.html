@@ -1080,12 +1080,7 @@ footer {
 <script>
 // ── CONFIG ──────────────────────────────────────────
 const CFG = {
-  // Replace with your deployed Apps Script URL after Step 4:
   appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyMmV-hgnM3AyZltSVguKWvC_toIIC92oqSJEZGi8kxyUJXNLw5lhkegFao2RHLAGE/exec',
-  // SHA-256 of "Marko12" — organiser password
-  pwHash: '845276a01681b8774501f4e5b3a49f2084ce34e5f223a55bd2758100ca309209',
-  // SHA-256 of "squadJFK2026" — guest password
-  guestPwHash: '897b8008a19aef8b8821ee4f7249e8b9f9dde82b637e607c5d3b27ffea3ee614',
 };
 
 // Guest table  (id → display name)
@@ -1529,17 +1524,23 @@ function closePostModal() {
   pendingReplyTs = null;
 }
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
 async function verifyPw() {
   const pw = document.getElementById('auth-pw').value;
-  const h  = await sha256(pw);
-  if (h === CFG.pwHash) {
+  let result;
+  try {
+    const res = await fetch(CFG.appsScriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'checkPassword', password: pw }),
+    });
+    result = await res.json();
+  } catch (_) {
+    document.getElementById('auth-err').style.display = 'block';
+    document.getElementById('auth-pw').value = '';
+    return;
+  }
+  if (result.ok && result.role === 'organiser') {
     authed = true;
-  } else if (h === CFG.guestPwHash) {
+  } else if (result.ok && result.role === 'guest') {
     guestAuthed = true;
     localStorage.setItem('squad_guest_authed', '1');
   } else {
