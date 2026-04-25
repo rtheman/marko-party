@@ -1,6 +1,6 @@
-# Marko's Birthday Party — Squad Invite System
+# Marko's Birthday Party - Squad Invite System
 
-A gaming-themed birthday party invite site with RSVP tracking, a live bulletin board, and email notifications — all backed by Google Sheets and Google Apps Script.
+A gaming-themed birthday party invite site with RSVP tracking, a live bulletin board, and email notifications - all backed by Google Sheets and Google Apps Script.
 
 ---
 
@@ -9,9 +9,9 @@ A gaming-themed birthday party invite site with RSVP tracking, a live bulletin b
 ```
 Google Sheet (Invitees + BulletinBoard tabs)
         ↕
-Google Apps Script (code.gs) — deployed as Web App
+Google Apps Script (code.gs) - deployed as Web App
         ↕
-GitHub Pages (index.html) — rtheman.github.io/marko-party
+GitHub Pages (index.html) - rtheman.github.io/marko-party
         ↕
 Guest's browser (personal invite link)
 ```
@@ -32,11 +32,11 @@ Guest's browser (personal invite link)
 ### Sending Invites
 1. Admin adds guest name + email to the `Invitees` sheet
 2. Admin adds guest to the `GUESTS` object in `index.html` and redeploys to GitHub Pages
-3. Admin runs `sendInvites()` in the Apps Script editor — each guest receives a personalised email with their unique link (e.g. `rtheman.github.io/marko-party/?guest=theirname`)
+3. Admin runs `sendInvites()` in the Apps Script editor - each guest receives a personalised email with their unique link (e.g. `rtheman.github.io/marko-party/?guest=theirname`)
 
 ### Guest RSVP
 1. Guest clicks their personal link → lands on the site with their name pre-filled
-2. Guest clicks **"I'M IN — JOIN SQUAD"** or **"Can't make it"**
+2. Guest clicks **"I'M IN - JOIN SQUAD"** or **"Can't make it"**
 3. Site sends a POST request to the Apps Script web app
 4. Apps Script records `CONFIRMED` or `DECLINED` in the `RSVP_status` column (col F) of the `Invitees` sheet
 
@@ -52,7 +52,7 @@ Guest's browser (personal invite link)
 | Setting | Value / Location |
 |---|---|
 | Google Sheet ID | `1uDXrNnlw92vDChv-wCWJ8lUTbpSrQkfTHolD39-Qxxs` |
-| Apps Script project | [script.google.com — Marko Birthday Party](https://script.google.com/home/projects/1c-isLfESj4ATZAV-y21aW5SIYJPrpEw5BZ4bRsaZnzXTmKQ0b-Uu-_Oq/edit) |
+| Apps Script project | [script.google.com - Marko Birthday Party](https://script.google.com/home/projects/1c-isLfESj4ATZAV-y21aW5SIYJPrpEw5BZ4bRsaZnzXTmKQ0b-Uu-_Oq/edit) |
 | Apps Script web app URL | Set in `index.html` → `CFG.appsScriptUrl` |
 | GitHub Pages URL | `https://rtheman.github.io/marko-party/` |
 | Organiser password | `Marko12` (bulletin board only) |
@@ -72,8 +72,8 @@ Guest's browser (personal invite link)
    };
    ```
    The key must be the guest's name **lowercased with spaces removed** (e.g. "John Smith" → `johnsmith`)
-3. **Commit and push** `index.html` to GitHub — GitHub Pages updates within ~1 minute
-4. **Send invite**: in the Apps Script editor, select `sendInvites` from the function dropdown and click **Run** — it will send to any guest not yet marked `Invite_sent = TRUE`
+3. **Commit and push** `index.html` to GitHub - GitHub Pages updates within ~1 minute
+4. **Send invite**: in the Apps Script editor, select `sendInvites` from the function dropdown and click **Run** - it will send to any guest not yet marked `Invite_sent = TRUE`
 
 ---
 
@@ -101,7 +101,7 @@ Their personal link will stop working immediately after the push.
 2. Scroll to **Squad Bulletin Board** → click **POST SQUAD UPDATE**
 3. Enter password: `Marko12`
 4. Type your message (and optionally paste an image URL)
-5. Click **TRANSMIT TO SQUAD** — all `CONFIRMED` guests receive an email notification
+5. Click **TRANSMIT TO SQUAD** - all `CONFIRMED` guests receive an email notification
 
 ---
 
@@ -135,7 +135,7 @@ GitHub Pages serves from the `main` branch root. Changes go live within ~60 seco
 
 ---
 
-## Invitees Sheet — Column Reference
+## Invitees Sheet - Column Reference
 
 | Col | Header | Notes |
 |---|---|---|
@@ -144,4 +144,4 @@ GitHub Pages serves from the `main` branch root. Changes go live within ~60 seco
 | C | email | Used for invite + notification emails |
 | D | *(spare)* | |
 | E | Invite_sent | Set to `TRUE` by `sendInvites()` automatically |
-| F | RSVP_status | `CONFIRMED` / `DECLINED` — set by RSVP flow or manually |
+| F | RSVP_status | `CONFIRMED` / `DECLINED` - set by RSVP flow or manually |
