@@ -454,7 +454,10 @@ body.has-invite-banner #hero { padding-top: 122px; }
    BULLETIN BOARD
    ═══════════════════════════════════════════════ */
 #bulletin { padding:0; }
-.bulletin-feed { display:flex; flex-direction:column; gap:16px; margin-bottom:32px; }
+.bulletin-feed { display:flex; flex-direction:column; gap:16px; max-height:600px; overflow-y:auto; padding-right:6px; }
+.bulletin-feed::-webkit-scrollbar { width:6px; }
+.bulletin-feed::-webkit-scrollbar-track { background:transparent; }
+.bulletin-feed::-webkit-scrollbar-thumb { background:var(--magenta); border-radius:3px; }
 .post {
   padding:20px 24px; border-left:3px solid var(--magenta);
   box-shadow:-4px 0 20px rgba(255,0,128,.15);
@@ -975,14 +978,14 @@ footer {
     <div class="section-title t-gold">SQUAD BULLETIN BOARD</div>
     <div class="section-sub">📡 LIVE TRANSMISSIONS FROM HQ 📡</div>
 
+    <div class="bulletin-cta">
+      <button class="btn-post" onclick="openPostModal()">📢 POST SQUAD UPDATE</button>
+    </div>
+
     <div class="bulletin-feed" id="bulletin-feed">
       <div class="hud-panel bulletin-empty" id="bulletin-empty">
         📻 No transmissions yet. Check back soon, soldier.
       </div>
-    </div>
-
-    <div class="bulletin-cta">
-      <button class="btn-post" onclick="openPostModal()">📢 POST SQUAD UPDATE</button>
     </div>
   </div>
 </section>
