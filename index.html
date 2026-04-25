@@ -983,13 +983,13 @@ footer {
 <div class="modal-overlay" id="post-modal">
   <div class="hud-panel magenta-theme modal-box">
     <button class="modal-close" onclick="closePostModal()">✕</button>
-    <div class="modal-title">POST SQUAD UPDATE</div>
+    <div class="modal-title" id="modal-title">POST SQUAD UPDATE</div>
 
     <div id="modal-auth">
       <div class="form-group">
-        <label class="form-label">Commander Password</label>
+        <label class="form-label" id="auth-label">Squad Password</label>
         <input type="password" class="form-input" id="auth-pw"
-               placeholder="Enter organiser password"
+               placeholder="Enter squad password"
                onkeypress="if(event.key==='Enter')verifyPw()">
         <div class="form-err" id="auth-err">⚠ Access denied. Wrong password.</div>
       </div>
@@ -1218,8 +1218,9 @@ function playJingle() {
 // ── BULLETIN BOARD ───────────────────────────────────
 let posts       = JSON.parse(localStorage.getItem('squad_posts')   || '[]');
 let replies     = JSON.parse(localStorage.getItem('squad_replies') || '[]');
-let authed      = false;  // organiser password verified this session
-let guestAuthed = localStorage.getItem('squad_guest_authed') === '1';
+let authed        = false;  // organiser password verified this session
+let guestAuthed   = localStorage.getItem('squad_guest_authed') === '1';
+let pendingReplyTs = null;  // set when auth modal is opened via a reply button
 
 function tsToId(ts) { return ts.replace(/[:.]/g, '-'); }
 let pendingMediaDataUrl = null;   // base64 data URL of picked file
@@ -1297,7 +1298,6 @@ function renderPosts() {
       <div class="reply-thread" id="thread-${pid}">
         ${repliesHtml}
         <div class="reply-form" id="reply-form-${pid}" style="display:none">
-          ${guestName ? '' : `<input class="reply-name-input" id="reply-name-${pid}" type="text" placeholder="Your name" maxlength="40" value="${safeAttr(localStorage.getItem('squad_reply_name') || '')}">`}
           <textarea class="reply-ta" id="reply-ta-${pid}" placeholder="Write a reply…" rows="2"></textarea>
           <div class="reply-form-btns">
             <button class="btn-reply-cancel" onclick="toggleReplyForm('${safeAttr(p.ts)}')">CANCEL</button>
@@ -1450,15 +1450,36 @@ async function fetchPosts() {
 }
 
 function openPostModal() {
+  pendingReplyTs = null;
+  document.getElementById('modal-title').textContent = 'POST SQUAD UPDATE';
+  _openAuthOrCompose();
+}
+function openAuthForReply(parentTs) {
+  pendingReplyTs = parentTs;
+  document.getElementById('modal-title').textContent = 'AUTHENTICATE TO REPLY';
+  _openAuthOrCompose();
+}
+function _openAuthOrCompose() {
   document.getElementById('post-modal').classList.add('open');
   const skipAuth = authed || guestAuthed;
   document.getElementById('modal-auth').style.display    = skipAuth ? 'none' : 'block';
-  document.getElementById('modal-compose').style.display = skipAuth ? 'block' : 'none';
+  document.getElementById('modal-compose').style.display = (skipAuth && !pendingReplyTs) ? 'block' : 'none';
   document.getElementById('auth-err').style.display = 'none';
-  if (skipAuth) document.getElementById('post-msg').focus();
+  document.getElementById('auth-pw').value = '';
+  if (skipAuth && !pendingReplyTs) {
+    document.getElementById('post-msg').focus();
+  } else if (skipAuth && pendingReplyTs) {
+    // Already authed — just open the reply form directly
+    closePostModal();
+    toggleReplyForm(pendingReplyTs);
+    pendingReplyTs = null;
+  } else {
+    document.getElementById('auth-pw').focus();
+  }
 }
 function closePostModal() {
   document.getElementById('post-modal').classList.remove('open');
+  pendingReplyTs = null;
 }
 
 async function sha256(str) {
@@ -1470,10 +1491,8 @@ async function verifyPw() {
   const pw = document.getElementById('auth-pw').value;
   const h  = await sha256(pw);
   if (h === CFG.pwHash) {
-    // Organiser password
     authed = true;
   } else if (h === CFG.guestPwHash) {
-    // Guest password — persist so they don't need to re-enter
     guestAuthed = true;
     localStorage.setItem('squad_guest_authed', '1');
   } else {
@@ -1481,10 +1500,17 @@ async function verifyPw() {
     document.getElementById('auth-pw').value = '';
     return;
   }
-  document.getElementById('modal-auth').style.display    = 'none';
-  document.getElementById('modal-compose').style.display = 'block';
-  document.getElementById('auth-err').style.display      = 'none';
-  document.getElementById('post-msg').focus();
+  document.getElementById('auth-err').style.display = 'none';
+  if (pendingReplyTs) {
+    // Auth was triggered by a reply button — open the reply form
+    const ts = pendingReplyTs;
+    closePostModal();
+    toggleReplyForm(ts);
+  } else {
+    document.getElementById('modal-auth').style.display    = 'none';
+    document.getElementById('modal-compose').style.display = 'block';
+    document.getElementById('post-msg').focus();
+  }
 }
 
 async function submitPost() {
@@ -1532,38 +1558,30 @@ async function submitPost() {
 
 // ── REPLY ─────────────────────────────────────────────
 function toggleReplyForm(parentTs) {
+  if (!authed && !guestAuthed) {
+    openAuthForReply(parentTs);
+    return;
+  }
   const pid  = tsToId(parentTs);
   const form = document.getElementById('reply-form-' + pid);
   if (!form) return;
   const isOpen = form.style.display !== 'none';
   form.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
-    // Focus name field first if present, otherwise the textarea
-    const nameEl = document.getElementById('reply-name-' + pid);
-    const ta     = document.getElementById('reply-ta-' + pid);
-    if (nameEl && !nameEl.value) nameEl.focus();
-    else if (ta) ta.focus();
+    const ta = document.getElementById('reply-ta-' + pid);
+    if (ta) ta.focus();
   }
 }
 
 async function submitReply(parentTs) {
-  const pid     = tsToId(parentTs);
-  const ta      = document.getElementById('reply-ta-' + pid);
-  const nameEl  = document.getElementById('reply-name-' + pid);
-  const msg     = ta ? ta.value.trim() : '';
+  const pid = tsToId(parentTs);
+  const ta  = document.getElementById('reply-ta-' + pid);
+  const msg = ta ? ta.value.trim() : '';
   if (!msg) { if (ta) ta.focus(); return; }
 
-  // Resolve author: URL param guest > name field > localStorage cache > Anonymous
-  let author;
-  if (guestName) {
-    author = guestName;
-  } else if (nameEl) {
-    author = nameEl.value.trim() || 'Anonymous';
-    if (author !== 'Anonymous') localStorage.setItem('squad_reply_name', author);
-  } else {
-    author = 'Anonymous';
-  }
-  const guestIdVal = guestId || '';
+  // Author: known guest name, or "Squad Member" for organiser-password holders
+  const author     = guestName || 'Squad Member';
+  const guestIdVal = guestId   || '';
   const replyTs    = new Date().toISOString();
 
   const reply = { parentTs, replyTs, author, msg, guestId: guestIdVal };
