@@ -1184,7 +1184,28 @@ function showState(s) {
 async function handleRSVP(resp) {
   if (!guestId) return;
 
-  // Optimistic UI
+  if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
+    try {
+      const res  = await fetch(CFG.appsScriptUrl, {
+        method: 'POST', mode: 'cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'rsvp', guestId, guestName, response: resp }),
+      });
+      const data = await res.json();
+      if (data.status === 'already_confirmed') {
+        const el = document.getElementById('rsvp-no-guest');
+        el.style.color = 'var(--cyan)';
+        el.style.fontSize = '0.9rem';
+        el.innerHTML = `✅ <strong>${guestName}</strong> is already signed up — no further action needed!`;
+        el.style.display = 'block';
+        return;
+      }
+    } catch (e) {
+      console.warn('RSVP sync failed, falling back to optimistic UI', e);
+    }
+  }
+
+  // Show UI (reached when backend confirms ok, or on network error as fallback)
   localStorage.setItem('rsvp_' + guestId, resp);
   if (resp === 'yes') {
     showState('accepted');
@@ -1192,17 +1213,6 @@ async function handleRSVP(resp) {
     playJingle();
   } else {
     showState('declined');
-  }
-
-  // Sync to backend
-  if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
-    try {
-      await fetch(CFG.appsScriptUrl, {
-        method: 'POST', mode: 'no-cors',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'rsvp', guestId, guestName, response: resp }),
-      });
-    } catch (e) { console.warn('RSVP sync failed', e); }
   }
 }
 
