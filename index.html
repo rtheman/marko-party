@@ -1091,7 +1091,8 @@ const GUESTS = {
   'bob': 'Bob',
   'charlie': 'Charlie',
   'daniel': 'Daniel',
-  'ellie': 'Ellie'
+  'ellie': 'Ellie',
+  'frank': 'Frank'
 };
 
 // ── LOADING SCREEN ───────────────────────────────────
@@ -1187,13 +1188,10 @@ async function handleRSVP(resp) {
 
   if (CFG.appsScriptUrl !== 'APPS_SCRIPT_URL_PLACEHOLDER') {
     try {
-      const res  = await fetch(CFG.appsScriptUrl, {
-        method: 'POST', mode: 'cors',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'rsvp', guestId, guestName, response: resp }),
-      });
-      const data = await res.json();
-      if (data.status === 'already_confirmed') {
+      // GET pre-check: if already CONFIRMED, show message and stop
+      const checkRes  = await fetch(CFG.appsScriptUrl + '?action=checkRsvp&guestId=' + encodeURIComponent(guestId));
+      const checkData = await checkRes.json();
+      if (checkData.status === 'CONFIRMED') {
         const el = document.getElementById('rsvp-no-guest');
         el.style.color = 'var(--cyan)';
         el.style.fontSize = '0.9rem';
@@ -1202,11 +1200,17 @@ async function handleRSVP(resp) {
         return;
       }
     } catch (e) {
-      console.warn('RSVP sync failed, falling back to optimistic UI', e);
+      console.warn('RSVP pre-check failed, proceeding anyway', e);
     }
+
+    // POST the RSVP (no-cors: fire-and-forget, reliably writes to sheet)
+    fetch(CFG.appsScriptUrl, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'rsvp', guestId, guestName, response: resp }),
+    }).catch(e => console.warn('RSVP sync failed', e));
   }
 
-  // Show UI (reached when backend confirms ok, or on network error as fallback)
   localStorage.setItem('rsvp_' + guestId, resp);
   if (resp === 'yes') {
     showState('accepted');
