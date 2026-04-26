@@ -721,6 +721,94 @@ footer {
 /* ── SPINNER FOR RSVP SUBMIT ── */
 .spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(0,212,255,.3); border-top-color:var(--cyan); border-radius:50%; animation:spin .7s linear infinite; margin-left:10px; vertical-align:middle; }
 @keyframes spin { to{transform:rotate(360deg)} }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════════════ */
+
+/* ── Laptop / small desktop ── */
+@media (max-width: 1024px) {
+  .section-inner { padding: 80px 28px; }
+  .nav-links { gap: 16px; }
+}
+
+/* ── Tablet / large phone ── */
+@media (max-width: 768px) {
+  html { font-size: 17px; }
+  .section-inner { padding: 70px 20px; }
+  .hud-card { min-width: 160px; }
+  .obj-name { font-size: .95rem; }
+  .obj-desc { font-size: .88rem; }
+  .mission-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Phone ── */
+@media (max-width: 480px) {
+  html { font-size: 18px; }
+
+  /* Layout */
+  .section-inner { padding: 60px 16px; }
+  .mission-grid { grid-template-columns: 1fr; }
+
+  /* Nav */
+  .nav-links a { font-size: .8rem; letter-spacing: 1.5px; }
+  .nav-links { gap: 12px; }
+
+  /* Invite banner */
+  #invite-banner { font-size: .72rem; flex-wrap: wrap; gap: 8px; text-align: center; }
+
+  /* HUD panels */
+  .hud-label { font-size: .7rem; }
+  .hud-card { padding: 12px 16px; min-width: 140px; }
+  .hud-card-val { font-size: 1rem; }
+
+  /* Hero */
+  .hero-badge { font-size: .8rem; padding: 5px 14px; }
+  .hero-level { padding: 8px 20px; gap: 10px; }
+  .hero-level-num { font-size: 2.8rem; }
+  .hero-level-label { font-size: .9rem; }
+
+  /* Section headers */
+  .section-sub { font-size: .85rem; margin-bottom: 36px; }
+
+  /* Mission briefing */
+  .day-title { font-size: 2rem; }
+  .day-venue { font-size: .8rem; }
+  .obj-time { font-size: .85rem; }
+  .obj-name { font-size: 1rem; }
+  .obj-desc { font-size: .9rem; }
+
+  /* RSVP */
+  .rsvp-wrap { padding: 32px 20px; }
+  .btn-join { font-size: 1.9rem; padding: 18px 24px; }
+
+  /* Victory / decline */
+  .v-icon { font-size: 4rem; }
+  .v-sub { font-size: .9rem; }
+  .squad-badge { font-size: 1rem; }
+  .v-details { font-size: .95rem; }
+
+  /* Bulletin board */
+  .post-body { font-size: 1rem; }
+  .post-author { font-size: .88rem; }
+  .reply-body { font-size: .95rem; }
+
+  /* Modal */
+  .modal-box { padding: 24px 20px; }
+  .modal-title { font-size: 1.8rem; }
+  .form-input, .form-ta { font-size: 1rem; padding: 10px 14px; }
+
+  /* Message HQ */
+  .hq-wrap { padding: 32px 20px; }
+  .hq-icon { font-size: 3.5rem; }
+  .hq-sub-title { font-size: 1.7rem; }
+  .hq-desc { font-size: .95rem; }
+  .btn-wa { font-size: 1.9rem; padding: 16px 28px; }
+
+  /* Touch targets — minimum 44px tap area */
+  .nav-links a { min-height: 44px; display: flex; align-items: center; }
+  .btn-reply { min-height: 44px; }
+}
 </style>
 </head>
 <body class="has-invite-banner">
@@ -891,7 +979,7 @@ footer {
 
         <div class="obj">
           <div class="obj-time">12:00</div>
-          <div class="obj-icon oi-gold">🍕</div>2
+          <div class="obj-icon oi-gold">🍕</div>
           <div class="obj-info">
             <div class="obj-name">Pizza Hut Raid</div>
             <div class="obj-desc">Final feast at the drop zone. <br><span style="color:var(--gold);font-size:.78rem">📍 <a href="https://maps.app.goo.gl/EzxeKGuhz4vqYw716" style="color:var(--gold)">Potsdamer Platz 1, 10785 Berlin</a></span></div>
